@@ -83,7 +83,8 @@ for imgName in imgNames:
            where mu_R, mu_G, mu_B respectively denote the means of the R,G,B color channels in the image.
            mu is a nSegments X nColors matrrix,(seglabels*255).np.asarray(int) where each matrix row denotes mean RGB color for a particcular segment"""
            
-        mu = """Initialize mu to 1/nSegments*['ones' matrix (whose elements are all 1) of size nSegments X nColors] -- 5 points"""  #for even start
+        mu = 1/nSegments*(np.ones((nSegments, nColors),dtype='float'))
+        """Initialize mu to 1/nSegments*['ones' matrix (whose elements are all 1) of size nSegments X nColors] -- 5 points"""  #for even start
         #add noise to the initialization (but keep it unit)
         for seg_ctr in range(nSegments):
             if(seg_ctr%2==1):
@@ -92,7 +93,7 @@ for imgName in imgNames:
                  if(seg_ctr%2==1):
                     mu[seg_ctr,col_ctr] = np.mean(pixels[:,col_ctr]) + increment
                  else:
-                    mu[seg_ctr,col_ctr] = np.mean(pixels[:,col_ctr]) - increment;              
+                    mu[seg_ctr,col_ctr] = np.mean(pixels[:,col_ctr]) - increment             
         
 
         #%% EM-iterations begin here. Start with the initial (pi, mu) guesses        
@@ -148,6 +149,7 @@ for imgName in imgNames:
 
                 denominatorSum = 0;
                 for pix_ctr in range(nPixels):
+                    mu[seg_ctr] = mu[seg_ctr] + pixels[pix_ctr,:] * Ws[pix_ctr, seg_ctr]
                     """Update RGB color vector of mu[seg_ctr] as current mu[seg_ctr] + pixels[pix_ctr,:] times Ws[pix_ctr,seg_ctr] -- 5 points"""
                     denominatorSum = denominatorSum + Ws[pix_ctr][seg_ctr]
                 
