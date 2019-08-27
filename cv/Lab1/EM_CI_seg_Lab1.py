@@ -30,19 +30,19 @@ segmentCounts = [2,3,4,5]
 for imgName in imgNames:
     for SegCount in segmentCounts:
         # Load the imageusing OpenCV        
-        img = mpimg.imread('Input/jump.png') 
+        img = mpimg.imread('Input/' + imgName + '.png') 
         """ Read Image using mplib library-- 2 points """ 
         print('Using Matplotlib Image Library: Image is of datatype ',img.dtype,'and size ',img.shape) # Image is of type float 
 
         # Load the Pillow-- the Python Imaging Library
-        img = np.array(Image.open("Input/jump.png"))
+        img = np.array(Image.open('Input/' + imgName + '.png'))
         """ Read Image using PILLOW-- 3 points""" 
         print('Using Pillow (Python Image Library): Image is of datatype ',img.dtype,'and size ',img.shape) # Image is of type uint8  
                 
 
         #%% %Define Parameters
         nSegments = SegCount   # of color clusters in image
-        nPixels = img.shape[0]*img.shape[1] 
+        nPixels = img.shape[0]*img.shape[1]
         """ Compute number of image pixels from image dimensions-- 2 points""";    # Image can be represented by a matrix of size nPixels*nColors
         maxIterations = 20; #maximum number of iterations allowed for EM algorithm.
         nColors = 3;
@@ -54,8 +54,8 @@ for imgName in imgNames:
         mpimg.imsave(outputPath + '0.png',img)
         """ save input image as *0.png* under outputPath-- 3 points""" #save using Matplotlib image library
         #%% Vectorizing image for easier loops- done as im(:) in Matlab
-        pixels = img
-        pixels = img.transpose(2,0,1).reshape(3,-1).transpose()
+        pixels = img.reshape(nPixels, nColors, 1)
+        # pixels = img.transpose(2,0,1).reshape(1,3,-1).transpose()
         """ Reshape pixels as a nPixels X nColors X 1 matrix-- 5 points"""
         
         #%%
@@ -149,7 +149,7 @@ for imgName in imgNames:
 
                 denominatorSum = 0;
                 for pix_ctr in range(nPixels):
-                    mu[seg_ctr] = mu[seg_ctr] + pixels[pix_ctr,:] * Ws[pix_ctr, seg_ctr]
+                    mu[seg_ctr] = mu[seg_ctr] + (pixels[pix_ctr,:] * Ws[pix_ctr, seg_ctr]).transpose()
                     """Update RGB color vector of mu[seg_ctr] as current mu[seg_ctr] + pixels[pix_ctr,:] times Ws[pix_ctr,seg_ctr] -- 5 points"""
                     denominatorSum = denominatorSum + Ws[pix_ctr][seg_ctr]
                 
@@ -189,9 +189,12 @@ for imgName in imgNames:
                 Prior to smoothing, convert segpixels to a Grayscale image, and convert the grayscale image into clusters based on pixel intensities"""
             
             segpixels = np.reshape(segpixels,(img.shape[0],img.shape[1],nColors)) ## reshape segpixels to obtain R,G, B image
-            segpixels = """convert segpixels to uint8 gray scale image and convert to grayscale-- 5 points""" #convert to grayscale
-            kmeans = """ Use kmeans from sci-kit learn library to cluster pixels in gray scale segpixels image to *nSegments* clusters-- 10 points"""
-            seglabels = """ reshape kmeans.labels_ output by kmeans to have the same size as segpixels -- 5 points"""
+            segpixels = rgb2gray(segpixels.astype(np.uint8))
+            """convert segpixels to uint8 gray scale image and convert to grayscale-- 5 points""" #convert to grayscale
+            kmeans = KMeans(n_clusters=nSegments).fit(segpixels)
+            """ Use kmeans from sci-kit learn library to cluster pixels in gray scale segpixels image to *nSegments* clusters-- 10 points"""
+            seglabels = kmeans.labels_.reshape(segpixels.shapep)
+            """ reshape kmeans.labels_ output by kmeans to have the same size as segpixels -- 5 points"""
             seglabels = "Use np.clip, Gaussian smoothing with sigma =2 and label2rgb functions to smoothen the seglabels image, and output a float RGB image with pixel values between [0--1]-- 20 points"""
             mpimg.imsave(''.join([outputPath,str(iteration+1),'.png']),seglabels) #save the segmented output
 
