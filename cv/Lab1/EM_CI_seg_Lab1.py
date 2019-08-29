@@ -27,7 +27,12 @@ colors = [[1,0,0],[0,1,0],[0,0,1],[0,0.5,0.5],[0.5,0,0.5]]
 imgNames = ['water_coins','jump','tiger']#{'balloons', 'mountains', 'nature', 'ocean', 'polarlights'};
 segmentCounts = [2,3,4,5]
 
+_,finalOutput = plt.subplots(len(imgNames), len(segmentCounts))
+img_ind = 0
+seg_ind = 0
+
 for imgName in imgNames:
+    seg_ind = 0
     for SegCount in segmentCounts:
         # Load the imageusing OpenCV        
         img = mpimg.imread('Input/' + imgName + '.png') 
@@ -83,7 +88,7 @@ for imgName in imgNames:
            where mu_R, mu_G, mu_B respectively denote the means of the R,G,B color channels in the image.
            mu is a nSegments X nColors matrrix,(seglabels*255).np.asarray(int) where each matrix row denotes mean RGB color for a particcular segment"""
            
-        mu = 1/nSegments*(np.ones((nSegments, nColors),dtype='float'))
+        mu = 1.0/nSegments*(np.ones((nSegments, nColors),dtype='float'))
         """Initialize mu to 1/nSegments*['ones' matrix (whose elements are all 1) of size nSegments X nColors] -- 5 points"""  #for even start
         #add noise to the initialization (but keep it unit)
         for seg_ctr in range(nSegments):
@@ -152,7 +157,11 @@ for imgName in imgNames:
                     mu[seg_ctr] = mu[seg_ctr] + (pixels[pix_ctr,:] * Ws[pix_ctr, seg_ctr]).transpose()
                     """Update RGB color vector of mu[seg_ctr] as current mu[seg_ctr] + pixels[pix_ctr,:] times Ws[pix_ctr,seg_ctr] -- 5 points"""
                     denominatorSum = denominatorSum + Ws[pix_ctr][seg_ctr]
-                
+
+
+                # mu[seg_ctr] = (np.sum(np.multiply(pixels, np.expand_dims(np.tile((Ws[:, seg_ctr]).reshape(nPixels, 1)), axis=nColors-1)), axis=0)).T
+                # denominatorSum = np.sum(Ws[:, seg_ctr])
+
                 """Compute mu[seg_ctr] and denominatorSum directly without the 'for loop'-- 10 points.
                    If you find the replacement instruction, comment out the for loop with your solution"
                    Hint: Use functions squeeze, tile and reshape along with sum"""
@@ -189,15 +198,42 @@ for imgName in imgNames:
                 Prior to smoothing, convert segpixels to a Grayscale image, and convert the grayscale image into clusters based on pixel intensities"""
             
             segpixels = np.reshape(segpixels,(img.shape[0],img.shape[1],nColors)) ## reshape segpixels to obtain R,G, B image
-            segpixels = rgb2gray(segpixels.astype(np.uint8))
+            # print(segpixels)
+            segpixels = (rgb2gray(segpixels)*256).astype(np.uint8)
+            # print(segpixels)
             """convert segpixels to uint8 gray scale image and convert to grayscale-- 5 points""" #convert to grayscale
-            kmeans = KMeans(n_clusters=nSegments).fit(segpixels)
+            segpixels_shape = segpixels.shape
+            kmeans = KMeans(n_clusters=nSegments).fit(np.reshape(segpixels, (nPixels, 1)))
             """ Use kmeans from sci-kit learn library to cluster pixels in gray scale segpixels image to *nSegments* clusters-- 10 points"""
-            seglabels = kmeans.labels_.reshape(segpixels.shapep)
+            seglabels = np.reshape(kmeans.labels_, segpixels_shape)
             """ reshape kmeans.labels_ output by kmeans to have the same size as segpixels -- 5 points"""
-            seglabels = "Use np.clip, Gaussian smoothing with sigma =2 and label2rgb functions to smoothen the seglabels image, and output a float RGB image with pixel values between [0--1]-- 20 points"""
+            seglabels = np.clip(gaussian(label2rgb(seglabels), sigma=2), 0 , 1)
+            """Use np.clip, Gaussian smoothing with sigma =2 and label2rgb functions to smoothen the seglabels image, and output a float RGB image with pixel values between [0--1]-- 20 points"""
             mpimg.imsave(''.join([outputPath,str(iteration+1),'.png']),seglabels) #save the segmented output
 
-            """ Display the 20th iteration (or final output in case of convergence) segmentation images with nSegments = 2,3,4,5 for the three images-- this will be a 3 row X 4 column image matrix-- 15 points"""  
-            """ Comment on the results obtained, and discuss your understanding of the Image Segmentation problem in general-- 10 points """  
+        finalOutput[img_ind, seg_ind].imshow(seglabels)
+        seg_ind += 1
+    img_ind += 1
+plt.show()
 
+
+""" Display the 20th iteration (or final output in case of convergence) segmentation images with nSegments = 2,3,4,5 for the three images-- this will be a 3 row X 4 column image matrix-- 15 points"""  
+""" Comment on the results obtained, and discuss your understanding of the Image Segmentation problem in general-- 10 points """  
+
+
+"""
+
+Comments:
+    If we want to segment the image into big and major segments then we can use less number of segments like 2 or 3
+    But if we want more detailed segments, then we can use the number of segments like 4 or 5
+
+    Like in Water Coins image: If we use the number of segments = 2, then it will be enough but as we increase the number of segments,
+    shadows will also get segmented
+
+    Like in Jump image: We can see the number of segments = 2 is not enough, as we have multiple objects in the image,
+    Similarly in Tiger image: When the number of segments = 2, the tiger gets segmented but we can not differentiate between grass and water,
+    But as we increase the number of segments we can segment grass and water separately.    
+
+    So, increasing the number of segments will increase the details from the image.
+
+"""
